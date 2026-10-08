@@ -1,0 +1,208 @@
+name: CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read-only by default. No job here needs to write to the repository.
+permissions:
+  contents: read
+
+# A newer push to a PR cancels the older run. On main, runs queue instead, so a
+# production deploy is never cut off half way.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  # Bump deliberately; a release at least two weeks old.
+  VERCEL_CLI: vercel@59.26.0
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Cache Next.js build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .next/cache
+          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('src/**', 'next.config.ts', 'postcss.config.mjs', 'tsconfig.json') }}
+          restore-keys: |
+            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Build
+        run: npm run build
+
+      # Dev-only advisories in the lint tooling never ship, so only the
+      # production tree can fail the run.
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
+
+  deploy-preview:
+    name: Deploy preview
+    needs: verify
+    # Secrets are not available to forks or Dependabot, and the deploy jobs are
+    # skipped entirely until the Vercel project is linked.
+    if: >-
+      github.event_name == 'pull_request' &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.actor != 'dependabot[bot]' &&
+      vars.VERCEL_PROJECT_ID != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: preview
+      url: ${{ steps.deploy.outputs.url }}
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Vercel CLI
+        run: npm install --global "$VERCEL_CLI"
+
+      - name: Pull project settings
+        run: vercel pull --yes --environment=preview --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Preview: $url" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy-production:
+    name: Deploy production
+    needs: verify
+    if: >-
+      github.event_name != 'pull_request' &&
+      github.ref == 'refs/heads/main' &&
+      vars.VERCEL_PROJECT_ID != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL || steps.deploy.outputs.url }}
+    concurrency:
+      group: production
+      cancel-in-progress: false
+    env:
+      VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install Vercel CLI
+        run: npm install --global "$VERCEL_CLI"
+
+      - name: Pull project settings
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      - name: Build
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy
+        id: deploy
+        run: |
+          url=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "Deployment: $url" >> "$GITHUB_STEP_SUMMARY"
+
+      # Checks the public domain, not the per-deployment URL: Vercel's
+      # deployment protection puts generated URLs behind a login.
+      - name: Smoke test
+        env:
+          SITE: ${{ vars.PRODUCTION_URL }}
+        run: |
+          set -uo pipefail
+          if [ -z "$SITE" ]; then
+            echo "::warning::PRODUCTION_URL is not set; smoke test skipped"
+            exit 0
+          fi
+          SITE="${SITE%/}"
+          fail=0
+
+          # The production alias can trail the deploy by a few seconds.
+          code=000
+          for _ in $(seq 1 10); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE/")
+            [ "$code" = 200 ] && break
+            sleep 6
+          done
+          if [ "$code" != 200 ]; then
+            echo "::error::$SITE/ returned $code"
+            exit 1
+          fi
+
+          headers=$(curl -sSI "$SITE/")
+          for h in content-security-policy strict-transport-security x-content-type-options \
+                   x-frame-options referrer-policy permissions-policy; do
+            if ! grep -qi "^$h:" <<<"$headers"; then
+              echo "::error::Missing header: $h"
+              fail=1
+            fi
+          done
+          if grep -qi '^x-powered-by:' <<<"$headers"; then
+            echo "::error::X-Powered-By is exposed"
+            fail=1
+          fi
+
+          for path in /CV_Overa_Caesar_EN.pdf /sitemap.xml /og.png; do
+            code=$(curl -s -o /dev/null -w '%{http_code}' "$SITE$path")
+            if [ "$code" != 200 ]; then
+              echo "::error::$path returned $code"
+              fail=1
+            fi
+          done
+
+          # site.url feeds the canonical tag, OG images, JSON-LD and the sitemap.
+          if ! curl -s "$SITE/" | grep -q "rel=\"canonical\" href=\"$SITE"; then
+            echo "::warning::Canonical URL does not point at $SITE. Update site.url in src/lib/content.ts."
+          fi
+
+          echo "Smoke test against $SITE: $([ "$fail" = 0 ] && echo passed || echo FAILED)" >> "$GITHUB_STEP_SUMMARY"
+          exit "$fail"

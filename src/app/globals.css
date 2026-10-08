@@ -1,0 +1,517 @@
+@import "tailwindcss";
+
+/* ============================================================
+   DESIGN TOKENS
+   ============================================================ */
+:root {
+  --bg: #0a0a0b;
+  --bg-2: #0f0f11;
+  --surface: rgba(255, 255, 255, 0.035);
+  --surface-2: rgba(255, 255, 255, 0.055);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #f3f2ec;
+  --text-2: #b6b5ad;
+  /* Muted text. Tuned to clear WCAG AA (4.5:1) against BOTH --bg and --bg-2,
+     since .wc-meta / .case .no sit on the lighter --bg-2 surfaces.
+     4.78:1 on --bg · 4.63:1 on --bg-2. Do not lighten the backgrounds without
+     re-checking this pair. */
+  --text-3: #7e7d74;
+  --accent: #c8ff3d; /* signal lime — the ONE accent · 16.80:1 on --bg */
+  --accent-ink: #0a0a0b;
+  --accent-glow: rgba(200, 255, 61, 0.35);
+  --grain: 0.04;
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --maxw: 1240px;
+
+  /* --font-display / --font-body / --font-mono are NOT declared here.
+     next/font owns them: it hashes the self-hosted filenames per build and
+     appends a metric-matched fallback, so the values are generated at build
+     time and applied via a class on <html>. See src/lib/fonts.ts. */
+}
+
+[data-theme="light"] {
+  --bg: #f1efe8;
+  --bg-2: #e9e7df;
+  --surface: rgba(10, 10, 11, 0.03);
+  --surface-2: rgba(10, 10, 11, 0.05);
+  --border: rgba(10, 10, 11, 0.1);
+  --border-strong: rgba(10, 10, 11, 0.18);
+  --text: #111110;
+  --text-2: #46453f;
+  /* 4.96:1 on --bg · 4.61:1 on --bg-2 */
+  --text-3: #67675f;
+  /* Deepened lime. Carries AA in BOTH directions, because the accent is used as
+     small text (.eyebrow, .paa .k, .cell .ct — all 11–12px) AND as a fill behind
+     --accent-ink (.btn.primary, .skip-link, ::selection).
+     As text: 5.00:1 on --bg · 4.65:1 on --bg-2. As fill: 4.94:1 vs --accent-ink. */
+  --accent: #546f00;
+  --accent-ink: #f1efe8;
+  --accent-glow: rgba(84, 111, 0, 0.22);
+  --grain: 0.05;
+}
+
+* { box-sizing: border-box; }
+/* `auto`, not `smooth`, on purpose: Lenis owns anchor scrolling (`anchors: true`
+   in Providers.tsx). Native smooth-scroll writes scrollTop on the same frames as
+   Lenis's RAF loop, and the two fight over the position. */
+html { -webkit-text-size-adjust: 100%; scroll-behavior: auto; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+  transition: background 0.6s var(--ease), color 0.6s var(--ease);
+}
+::selection { background: var(--accent); color: var(--accent-ink); }
+a { color: inherit; text-decoration: none; }
+img { max-width: 100%; display: block; }
+h1, h2, h3, h4 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+p { margin: 0; }
+.mono { font-family: var(--font-mono); }
+
+/* ============================================================
+   ATMOSPHERE
+   ============================================================ */
+.grain {
+  position: fixed; inset: -50%; z-index: 1; pointer-events: none; opacity: var(--grain);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  animation: grain 7s steps(8) infinite; mix-blend-mode: overlay;
+}
+@keyframes grain {
+  0% { transform: translate(0, 0); } 10% { transform: translate(-3%, -4%); }
+  30% { transform: translate(2%, -2%); } 50% { transform: translate(-1%, 3%); }
+  70% { transform: translate(3%, 1%); } 90% { transform: translate(-2%, 2%); }
+  100% { transform: translate(0, 0); }
+}
+.aurora { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+.blob { position: absolute; border-radius: 50%; filter: blur(90px); opacity: 0.5; will-change: transform; }
+.blob.a { width: 46vw; height: 46vw; left: -8vw; top: -10vw; background: radial-gradient(circle, var(--accent-glow), transparent 70%); }
+.blob.b { width: 38vw; height: 38vw; right: -6vw; top: 18vh; background: radial-gradient(circle, rgba(80, 120, 255, 0.18), transparent 70%); }
+.blob.c { width: 42vw; height: 42vw; left: 24vw; bottom: -16vw; background: radial-gradient(circle, rgba(255, 120, 80, 0.12), transparent 70%); }
+
+/* ============================================================
+   LOADER + CURSOR + PROGRESS
+   ============================================================ */
+.loader {
+  position: fixed; inset: 0; z-index: 200; background: var(--bg);
+}
+/* Centred animated brand */
+.loader-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+.loader-mono { position: relative; width: clamp(96px, 13vw, 132px); height: clamp(96px, 13vw, 132px); display: grid; place-items: center; }
+.loader-mono svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.loader-mono span { font-family: var(--font-display); font-weight: 600; font-size: clamp(38px, 5vw, 54px); color: var(--text); letter-spacing: -0.02em; }
+.loader-mono span i { color: var(--accent); font-style: normal; }
+.lname { display: flex; gap: 0.02em; }
+.lname .line { display: block; overflow: hidden; }
+.lname .ch { display: inline-block; font-family: var(--font-display); font-weight: 600; font-size: clamp(40px, 8vw, 92px); letter-spacing: -0.02em; line-height: 1; }
+.loader-tag { font-family: var(--font-mono); font-size: clamp(12px, 1.4vw, 14px); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
+.loader .lbl { position: absolute; left: 6vw; bottom: 6vw; font-family: var(--font-mono); font-size: clamp(12px, 1.4vw, 15px); letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); }
+.loader .count { position: absolute; right: 6vw; bottom: 5vw; font-family: var(--font-display); font-weight: 600; font-size: clamp(48px, 11vw, 140px); line-height: 0.8; letter-spacing: -0.04em; }
+.loader .count b { color: var(--accent); font-weight: 600; }
+.loader-bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); }
+.wipe { position: fixed; inset: 0; z-index: 199; background: var(--accent); transform-origin: top; }
+/* The intro already ran this session — the attribute is stamped on <html> before
+   first paint (layout.tsx). The Loader still RENDERS on the client's first pass
+   so its markup matches the server's; this is what keeps it from ever being
+   painted. Removing this rule reintroduces a full-screen flash on every reload. */
+html[data-intro="played"] .loader,
+html[data-intro="played"] .wipe { display: none; }
+
+/* Failsafe for the case <noscript> cannot reach: JS is ENABLED but the bundle
+   never arrives (failed download, blocked by an extension or corporate proxy,
+   browser too old to parse it). Nothing would tear these overlays down and the
+   fully server-rendered page below would stay covered indefinitely.
+   Normal teardown finishes in ~2.5s, so 6s only elapses when something has
+   genuinely gone wrong. Animates `visibility` only — no motion, and it touches
+   no property GSAP owns (it drives transform), so the two never fight. */
+@keyframes loader-failsafe { to { visibility: hidden; } }
+.loader, .wipe { animation: loader-failsafe 1ms linear 6s forwards; }
+
+.cursor { position: fixed; top: 0; left: 0; z-index: 300; pointer-events: none; mix-blend-mode: difference; }
+.cursor .dot { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: #fff; }
+.cursor .ring { position: absolute; width: 38px; height: 38px; border: 1px solid #fff; border-radius: 50%; transition: width 0.25s var(--ease), height 0.25s var(--ease), background 0.25s; }
+.cursor.hover .ring { width: 74px; height: 74px; background: #fff; }
+@media (hover: none), (pointer: coarse) { .cursor { display: none; } }
+
+.progress { position: fixed; top: 0; left: 0; height: 2px; width: 0; background: var(--accent); z-index: 120; }
+
+/* ============================================================
+   NAV
+   ============================================================ */
+nav.site {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 110;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px clamp(20px, 5vw, 56px);
+}
+nav.site .brand { font-family: var(--font-display); font-weight: 600; font-size: 20px; letter-spacing: -0.01em; }
+nav.site .brand span { color: var(--accent); }
+.nav-links { display: flex; gap: 30px; align-items: center; }
+.nav-links a { font-size: 14px; color: var(--text-2); position: relative; padding: 4px 0; }
+.nav-links a::after { content: ""; position: absolute; left: 0; bottom: 0; width: 0; height: 1px; background: var(--accent); transition: width 0.35s var(--ease); }
+.nav-links a:hover { color: var(--text); }
+.nav-links a:hover::after { width: 100%; }
+.theme-toggle { width: 46px; height: 26px; border-radius: 20px; border: 1px solid var(--border-strong); background: var(--surface); position: relative; cursor: pointer; }
+.theme-toggle .knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--accent); transition: transform 0.4s var(--ease); }
+[data-theme="light"] .theme-toggle .knob { transform: translateX(20px); }
+
+/* ── Mobile menu ───────────────────────────────────────────────────────────
+   Below 760px the inline links are hidden, so the burger + modal panel are the
+   ONLY way to reach the sections. Keep the breakpoint here in sync with
+   MOBILE_QUERY in Nav.tsx, which closes the panel when it stops matching.     */
+.nav-burger {
+  display: none; /* desktop: inline links are visible instead */
+  width: 44px; height: 44px; /* WCAG 2.5.5 minimum target size */
+  align-items: center; justify-content: center; padding: 0;
+  border: 1px solid var(--border-strong); border-radius: 50%;
+  background: var(--surface); color: var(--text); cursor: pointer;
+}
+.nav-burger .bars { position: relative; display: block; width: 17px; height: 12px; }
+.nav-burger .bars i { position: absolute; left: 0; width: 100%; height: 1.5px; border-radius: 2px; background: currentColor; transition: transform 0.3s var(--ease); }
+.nav-burger .bars i:nth-child(1) { top: 0; }
+.nav-burger .bars i:nth-child(2) { bottom: 0; }
+/* Driven off aria-expanded rather than a second class — the attribute is the
+   state, so the icon cannot disagree with what assistive tech is told. */
+.nav-burger[aria-expanded="true"] .bars i:nth-child(1) { transform: translateY(5.25px) rotate(45deg); }
+.nav-burger[aria-expanded="true"] .bars i:nth-child(2) { transform: translateY(-5.25px) rotate(-45deg); }
+
+@media (max-width: 760px) {
+  .nav-links a:not(.icon-only) { display: none; }
+  .nav-links { gap: 14px; }
+  .nav-burger { display: inline-flex; }
+}
+
+.mobile-menu {
+  position: fixed; inset: 0; z-index: 105; /* under nav (110) so the burger stays tappable */
+  display: flex; flex-direction: column;
+  justify-content: center;
+  /* `safe` keeps the top of the list reachable when the content is taller than
+     the viewport (short landscape phones) — plain centring would overflow past
+     the scrollable edge and clip it. Falls back to the line above. */
+  justify-content: safe center;
+  padding: 104px clamp(20px, 5vw, 56px) 40px;
+  background: color-mix(in srgb, var(--bg) 92%, transparent);
+  backdrop-filter: blur(22px);
+  overflow-y: auto;
+  overscroll-behavior: contain; /* no scroll-chaining to the page behind */
+  animation: mm-in 0.3s var(--ease) both;
+}
+@keyframes mm-in { from { opacity: 0; } to { opacity: 1; } }
+/* Defensive: the panel is mobile-only, and Nav.tsx also closes it on resize. */
+@media (min-width: 761px) { .mobile-menu { display: none; } }
+
+.mm-links { list-style: none; margin: 0; padding: 0; }
+.mm-links a {
+  display: flex; align-items: baseline; gap: 16px; padding: 16px 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--font-display); font-weight: 600;
+  font-size: clamp(34px, 12vw, 58px); line-height: 1; letter-spacing: -0.02em;
+  transition: color 0.3s;
+  /* Staggered entrance; --i is set inline per item. Under reduced motion the
+     global `animation: none !important` drops this and items render visible,
+     because the hidden state lives in the keyframes rather than in a base rule. */
+  animation: mm-item 0.45s var(--ease) both;
+  animation-delay: calc(var(--i, 0) * 55ms + 60ms);
+}
+@keyframes mm-item { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.mm-links a:hover, .mm-links a:focus-visible { color: var(--accent); }
+.mm-no { font-family: var(--font-mono); font-weight: 400; font-size: 12px; letter-spacing: 0.1em; color: var(--accent); }
+.mm-foot { margin-top: 36px; display: flex; flex-direction: column; gap: 6px; font-family: var(--font-mono); font-size: 13px; color: var(--text-3); }
+.mm-foot a { color: var(--text-2); transition: color 0.3s; }
+.mm-foot a:hover, .mm-foot a:focus-visible { color: var(--accent); }
+/* Off-screen until focused (same technique as .skip-link) — an always-invisible
+   focusable control would be a keyboard trap of its own. */
+.mm-close {
+  position: absolute; top: 0; left: 50%;
+  transform: translate(-50%, -130%);
+  padding: 10px 20px; border: none; border-radius: 0 0 10px 10px;
+  background: var(--accent); color: var(--accent-ink); cursor: pointer;
+  font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.1em;
+  transition: transform 0.2s;
+}
+.mm-close:focus-visible { transform: translate(-50%, 0); outline: none; }
+
+/* ============================================================
+   LAYOUT PRIMITIVES
+   ============================================================ */
+section { position: relative; z-index: 2; padding: clamp(90px, 12vw, 170px) clamp(20px, 5vw, 56px); }
+.wrap { max-width: var(--maxw); margin: 0 auto; }
+/* font-weight and line-height are pinned because About applies this class
+   to an <h2> (so the section has a real heading and an accessible name). Without
+   them the `h1, h2, h3, h4` rule above would apply weight 600 to JetBrains Mono,
+   which only ships 400 — the browser would synthesise the bold. */
+.eyebrow { display: inline-flex; align-items: center; gap: 10px; font-family: var(--font-mono); font-weight: 400; font-size: 12px; line-height: 1; letter-spacing: 0.22em; text-transform: uppercase; color: var(--accent); margin-bottom: 26px; }
+.eyebrow::before { content: ""; width: 26px; height: 1px; background: var(--accent); display: inline-block; }
+.shead { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; margin-bottom: 60px; flex-wrap: wrap; }
+.shead h2 { font-size: clamp(34px, 6vw, 82px); max-width: 14ch; }
+.shead .idx { font-family: var(--font-mono); font-size: 13px; color: var(--text-3); letter-spacing: 0.1em; }
+
+/* ============================================================
+   HERO
+   ============================================================ */
+.hero { min-height: 100svh; display: flex; flex-direction: column; justify-content: center; padding-top: 120px; }
+.pill { display: inline-flex; align-items: center; gap: 10px; padding: 8px 16px; border-radius: 30px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 13.5px; color: var(--text-2); margin-bottom: 38px; backdrop-filter: blur(10px); }
+.pill .ok { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 0 var(--accent-glow); animation: beat 2s infinite; }
+@keyframes beat { 0% { box-shadow: 0 0 0 0 var(--accent-glow); } 70% { box-shadow: 0 0 0 9px transparent; } 100% { box-shadow: 0 0 0 0 transparent; } }
+.hero-id { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-bottom: 18px; }
+.hero-id .nm { font-family: var(--font-display); font-weight: 600; font-size: clamp(24px, 3vw, 34px); letter-spacing: -0.01em; color: var(--text); }
+.hero-id .rl { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
+.hero h1 { font-size: clamp(46px, 10.5vw, 148px); font-weight: 600; }
+.hero h1 .line { display: block; overflow: hidden; }
+.hero h1 .ch { display: inline-block; }
+.hero h1 em { font-style: normal; color: var(--accent); }
+.hero .sub { max-width: 640px; margin-top: 34px; font-size: clamp(17px, 2.1vw, 21px); color: var(--text-2); }
+.hero .sub .vp { color: var(--text); }
+.cta-row { display: flex; gap: 16px; margin-top: 46px; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; gap: 12px; padding: 16px 28px; border-radius: 40px; font-family: var(--font-display); font-weight: 500; font-size: 16px; cursor: pointer; border: 1px solid var(--border-strong); background: transparent; color: var(--text); transition: transform 0.2s var(--ease), background 0.3s, color 0.3s, border-color 0.3s; will-change: transform; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { box-shadow: 0 14px 40px -10px var(--accent-glow); }
+.btn:hover { border-color: var(--text); }
+.btn .arr { transition: transform 0.3s var(--ease); }
+.btn:hover .arr { transform: translate(4px, -4px); }
+.btn:hover .arr.down { transform: translateY(3px); }
+.hero-foot { display: flex; justify-content: space-between; align-items: flex-end; margin-top: auto; padding-top: 60px; gap: 24px; flex-wrap: wrap; }
+.scroll-hint { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); display: flex; align-items: center; gap: 12px; }
+.scroll-hint .ln { width: 46px; height: 1px; background: var(--text-3); position: relative; overflow: hidden; }
+.scroll-hint .ln::after { content: ""; position: absolute; inset: 0; background: var(--accent); transform: translateX(-100%); animation: slide 2.2s infinite var(--ease); }
+@keyframes slide { 0% { transform: translateX(-100%); } 60% { transform: translateX(100%); } 100% { transform: translateX(100%); } }
+
+/* ============================================================
+   ABOUT
+   ============================================================ */
+.about-grid { display: grid; grid-template-columns: 1.4fr 0.9fr; gap: 56px; align-items: start; }
+.about-grid p { font-size: clamp(18px, 2.3vw, 26px); line-height: 1.5; color: var(--text); letter-spacing: -0.01em; }
+.about-grid p + p { margin-top: 26px; }
+.about-grid p .dim { color: var(--text-3); }
+.photo { aspect-ratio: 3/4; border-radius: 18px; border: 1px solid var(--border); background: var(--bg-2); position: relative; overflow: hidden; }
+.photo-frame { position: absolute; inset: -8% 0; }
+.photo-img { width: 100%; height: 100%; object-fit: cover; object-position: center 28%; filter: grayscale(0.5) contrast(1.02) brightness(0.96); transition: filter 0.6s var(--ease), transform 0.9s var(--ease); }
+.photo:hover .photo-img { filter: grayscale(0) contrast(1.04) brightness(1); transform: scale(1.045); }
+/* Accent gradient tint, lifts on hover */
+.photo-tint { position: absolute; inset: 0; background: linear-gradient(150deg, transparent 45%, var(--accent-glow)); mix-blend-mode: screen; opacity: 0.45; transition: opacity 0.6s var(--ease); pointer-events: none; }
+.photo:hover .photo-tint { opacity: 0.18; }
+/* Film grain to match the site texture */
+.photo-grain { position: absolute; inset: 0; pointer-events: none; opacity: 0.5; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E"); }
+/* Accent corner bracket (top-left) */
+.photo-corner { position: absolute; top: 14px; left: 14px; width: 26px; height: 26px; border-top: 2px solid var(--accent); border-left: 2px solid var(--accent); border-radius: 4px 0 0 0; opacity: 0.9; pointer-events: none; }
+/* Floating location badge (bottom) */
+.photo-badge { position: absolute; left: 14px; bottom: 14px; display: inline-flex; align-items: center; gap: 8px; font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.05em; color: var(--text); background: rgba(10,10,11,0.6); backdrop-filter: blur(8px); border: 1px solid var(--border); padding: 7px 12px; border-radius: 30px; }
+.photo .ph { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); text-align: center; padding: 20px; }
+@media (max-width: 860px) { .about-grid { grid-template-columns: 1fr; } .photo { max-width: 340px; } }
+
+/* ============================================================
+   BENTO SKILLS
+   ============================================================ */
+.bento { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; grid-auto-rows: minmax(120px, auto); }
+.cell { border: 1px solid var(--border); background: var(--surface); border-radius: 16px; padding: 24px; position: relative; overflow: hidden; backdrop-filter: blur(8px); transition: border-color 0.35s, transform 0.35s var(--ease); }
+.cell:hover { border-color: var(--border-strong); }
+.cell::before { content: ""; position: absolute; inset: 0; background: radial-gradient(400px circle at var(--mx, 50%) var(--my, 50%), var(--accent-glow), transparent 45%); opacity: 0; transition: opacity 0.4s; }
+.cell:hover::before { opacity: 0.5; }
+.cell .ct { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--accent); margin-bottom: 14px; position: relative; }
+.cell .tags { display: flex; flex-wrap: wrap; gap: 8px; position: relative; }
+.cell .tags span { font-size: 14px; padding: 6px 12px; border-radius: 30px; border: 1px solid var(--border); color: var(--text-2); background: var(--bg-2); }
+
+/* Leveled skill tag: name + proficiency dots */
+.cell .tags span.tag-lvl { display: inline-flex; align-items: center; gap: 9px; }
+.dots { display: inline-flex; align-items: center; gap: 3px; }
+.dots i { width: 5px; height: 5px; border-radius: 50%; background: var(--border-strong); display: inline-block; transition: background 0.3s; }
+.dots i.on { background: var(--accent); }
+
+/* Proficiency legend under the skills heading — one key per level in `skillScale`.
+   Column gap is wide enough that the keys read as separate units without needing
+   a middle-dot separator (which strands itself at line-start when this wraps). */
+.lvl-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 10px 22px; margin: -30px 0 40px; font-family: var(--font-mono); font-size: 12px; color: var(--text-3); letter-spacing: 0.04em; }
+.lvl-key { display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.cell h3 { font-size: clamp(20px, 2.4vw, 30px); position: relative; }
+.cell.big { grid-column: span 3; grid-row: span 2; }
+.cell.wide { grid-column: span 3; }
+.cell.mid { grid-column: span 2; }
+.cell.feature { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column; justify-content: space-between; background: linear-gradient(150deg, var(--surface-2), transparent); }
+.cell.feature .big-n { font-family: var(--font-display); font-weight: 600; font-size: clamp(40px, 6vw, 68px); color: var(--accent); line-height: 0.9; }
+@media (max-width: 920px) { .bento { grid-template-columns: repeat(2, 1fr); } .cell.big, .cell.wide, .cell.mid, .cell.feature { grid-column: span 2; grid-row: auto; } }
+
+/* ============================================================
+   STATS
+   ============================================================ */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; border-top: 1px solid var(--border); padding-top: 40px; }
+.stat .n { font-family: var(--font-display); font-weight: 600; font-size: clamp(46px, 7vw, 90px); line-height: 0.9; letter-spacing: -0.03em; color: var(--accent); }
+.stat .l { color: var(--text-2); font-size: 15px; margin-top: 10px; max-width: 24ch; }
+@media (max-width: 760px) { .stats { grid-template-columns: 1fr; gap: 36px; } }
+
+/* ============================================================
+   WORK — sticky stacked case-study cards
+   ============================================================ */
+.work-stack { position: relative; }
+/* Each card gets a higher z-index than the previous so it always sits on top.
+   A small progressive top offset (4px per card) creates a natural "deck" depth —
+   later cards peek slightly below the one above, like physical stacked cards.    */
+.case { position: sticky; top: 90px; border: 1px solid var(--border); border-radius: 22px; overflow: hidden; background: var(--bg-2); margin-bottom: 24px; will-change: transform; }
+.work-stack .case:nth-child(1)  { z-index:  1; top:  90px; }
+.work-stack .case:nth-child(2)  { z-index:  2; top:  96px; }
+.work-stack .case:nth-child(3)  { z-index:  3; top: 102px; }
+.work-stack .case:nth-child(4)  { z-index:  4; top: 108px; }
+.work-stack .case:nth-child(5)  { z-index:  5; top: 114px; }
+.work-stack .case:nth-child(6)  { z-index:  6; top: 120px; }
+.work-stack .case:nth-child(7)  { z-index:  7; top: 126px; }
+.work-stack .case:nth-child(8)  { z-index:  8; top: 132px; }
+.work-stack .case:nth-child(9)  { z-index:  9; top: 138px; }
+.work-stack .case:nth-child(10) { z-index: 10; top: 144px; }
+.work-stack .case:nth-child(11) { z-index: 11; top: 150px; }
+.work-stack .case:nth-child(12) { z-index: 12; top: 156px; }
+.work-stack .case:nth-child(13) { z-index: 13; top: 162px; }
+.case-inner { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 440px; }
+.case-body { padding: clamp(28px, 4vw, 52px); display: flex; flex-direction: column; }
+.case .no { font-family: var(--font-mono); font-size: 13px; color: var(--text-3); letter-spacing: 0.1em; }
+.case h3 { font-size: clamp(28px, 4vw, 52px); margin: 14px 0 8px; }
+.case-meta { display: flex; flex-wrap: wrap; gap: 4px 16px; font-family: var(--font-mono); font-size: 12px; color: var(--text-3); margin-bottom: 8px; }
+.case .stack-row { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0 26px; }
+.case .stack-row span { font-family: var(--font-mono); font-size: 12px; padding: 5px 11px; border-radius: 30px; border: 1px solid var(--border); color: var(--text-2); }
+.paa { display: grid; gap: 16px; margin-top: auto; }
+.paa .row { display: grid; grid-template-columns: 96px 1fr; gap: 18px; align-items: start; border-top: 1px solid var(--border); padding-top: 16px; }
+.paa .k { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); padding-top: 3px; }
+.paa .v { color: var(--text-2); font-size: 15.5px; }
+.case-visual { position: relative; background: linear-gradient(160deg, var(--surface-2), var(--bg)); overflow: hidden; display: grid; place-items: center; }
+.case-visual .glyph { font-family: var(--font-display); font-weight: 600; font-size: clamp(90px, 18vw, 220px); color: var(--text); opacity: 0.06; letter-spacing: -0.04em; user-select: none; }
+.case-visual .ring { position: absolute; border: 1px solid var(--border-strong); border-radius: 50%; }
+.case-visual .accent-dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 30px 4px var(--accent-glow); }
+@media (max-width: 860px) { .case-inner { grid-template-columns: 1fr; } .case-visual { min-height: 200px; } .case { position: relative; top: 0; } }
+
+/* "More work" — compact grid for non-featured projects (no screenshot needed) */
+.more-head { display: flex; align-items: center; gap: 18px; margin: 70px 0 26px; }
+.more-head .idx { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); white-space: nowrap; }
+.more-head .line { flex: 1; height: 1px; background: var(--border); }
+.work-more { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.wc { position: relative; overflow: hidden; border: 1px solid var(--border); border-radius: 16px; background: var(--surface); padding: 24px; transition: border-color 0.35s, background 0.35s; }
+.wc:hover { border-color: var(--border-strong); background: var(--surface-2); }
+.wc-glyph { position: absolute; top: -14px; right: 6px; font-family: var(--font-display); font-weight: 600; font-size: 92px; line-height: 1; color: var(--text); opacity: 0.05; letter-spacing: -0.04em; user-select: none; pointer-events: none; }
+.wc-no { font-family: var(--font-mono); font-size: 12px; color: var(--text-3); letter-spacing: 0.1em; }
+.wc-title { font-family: var(--font-display); font-weight: 500; font-size: clamp(20px, 2.4vw, 26px); margin: 10px 0 8px; position: relative; }
+.wc-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; font-family: var(--font-mono); font-size: 11.5px; color: var(--text-3); margin-bottom: 16px; }
+.wc-stack { display: flex; flex-wrap: wrap; gap: 7px; position: relative; }
+.wc-stack span { font-family: var(--font-mono); font-size: 11px; padding: 4px 10px; border-radius: 30px; border: 1px solid var(--border); color: var(--text-2); }
+/* Only rendered for entries with a public `url` (see CaseStudy in content.ts).
+   position: relative keeps it above .wc-glyph, which is a huge low-opacity
+   letterform absolutely positioned across the card. */
+.wc-link { position: relative; display: inline-flex; align-items: center; gap: 6px; margin-top: 16px; font-family: var(--font-mono); font-size: 11.5px; letter-spacing: 0.06em; color: var(--accent); border-bottom: 1px solid transparent; transition: border-color 0.3s; }
+.wc-link:hover { border-bottom-color: var(--accent); }
+@media (max-width: 920px) { .work-more { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 600px) { .work-more { grid-template-columns: 1fr; } }
+
+/* ============================================================
+   MARQUEE
+   ============================================================ */
+.marquee { border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); padding: 28px 0; overflow: hidden; white-space: nowrap; position: relative; z-index: 2; }
+.marquee .track { display: inline-flex; gap: 48px; will-change: transform; }
+/* Hover pause is now handled by GSAP in Marquee.tsx */
+.marquee .it { font-family: var(--font-display); font-weight: 500; font-size: clamp(22px, 3.4vw, 44px); color: var(--text-3); display: inline-flex; align-items: center; gap: 48px; letter-spacing: -0.01em; }
+.marquee .it::after { content: "\2726"; color: var(--accent); font-size: 0.6em; }
+
+/* ============================================================
+   TIMELINE
+   ============================================================ */
+.tl .item { display: grid; grid-template-columns: 200px 1fr; gap: 34px; padding: 30px 0; border-top: 1px solid var(--border); align-items: start; }
+.tl .item:hover .yr { color: var(--accent); }
+.tl .yr { font-family: var(--font-mono); font-size: 14px; color: var(--text-3); letter-spacing: 0.06em; transition: color 0.3s; }
+.tl .role { font-family: var(--font-display); font-weight: 500; font-size: clamp(20px, 2.6vw, 30px); }
+.tl .org { color: var(--text-2); font-size: 15px; margin-top: 6px; }
+.tl .desc { color: var(--text-2); font-size: 15.5px; margin-top: 12px; max-width: 60ch; }
+@media (max-width: 680px) { .tl .item { grid-template-columns: 1fr; gap: 8px; } }
+
+/* ============================================================
+   CONTACT + FOOTER
+   ============================================================ */
+.contact h2 { font-size: clamp(44px, 11vw, 150px); line-height: 0.92; letter-spacing: -0.03em; }
+.contact h2 a { position: relative; }
+.contact h2 a::after { content: ""; position: absolute; left: 0; bottom: 0.08em; height: 3px; width: 0; background: var(--accent); transition: width 0.5s var(--ease); }
+.contact h2 a:hover::after { width: 100%; }
+.contact .links { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 50px; }
+.contact .links a { border: 1px solid var(--border-strong); border-radius: 40px; padding: 14px 24px; font-size: 15px; display: inline-flex; gap: 10px; align-items: center; transition: background 0.3s, color 0.3s, border-color 0.3s; }
+.contact .links a:hover { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.contact .meta { margin-top: 30px; color: var(--text-3); font-family: var(--font-mono); font-size: 13px; }
+footer.site { border-top: 1px solid var(--border); padding: 40px clamp(20px, 5vw, 56px); display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap; position: relative; z-index: 2; }
+footer.site .c { color: var(--text-3); font-size: 13px; font-family: var(--font-mono); }
+.totop { display: inline-flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-2); cursor: pointer; background: none; border: none; }
+.totop:hover { color: var(--accent); }
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  html { scroll-behavior: auto; }
+  /* Re-arm the loader failsafe. The blanket rule above would otherwise disable
+     the one animation whose entire job is to prevent a permanently stuck screen
+     — and a visitor on reduced motion is no less stranded by a dead bundle.
+     It animates visibility, so there is no motion being reintroduced here. */
+  .loader, .wipe { animation: loader-failsafe 1ms linear 6s forwards !important; }
+}
+
+/* ============================================================
+   KEYBOARD FOCUS & ACCESSIBILITY
+   ============================================================ */
+
+/* Remove default outline — replace with our own on :focus-visible only
+   (so mouse users don't see a ring, keyboard users always do).        */
+:focus { outline: none; }
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Stronger ring for button-style elements */
+.btn:focus-visible,
+.theme-toggle:focus-visible,
+.totop:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  box-shadow: 0 0 0 5px var(--accent-glow);
+  border-radius: 40px;
+}
+
+/* Nav links */
+.nav-links a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 4px;
+  border-radius: 4px;
+  color: var(--text);
+}
+
+/* Contact links */
+.contact .links a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 40px;
+}
+
+/* Skip-to-main link (hidden until focused — screen-reader + keyboard users) */
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 16px;
+  z-index: 500;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  letter-spacing: 0.1em;
+  padding: 10px 20px;
+  border-radius: 0 0 10px 10px;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-link:focus {
+  top: 0;
+  outline: none;
+}
