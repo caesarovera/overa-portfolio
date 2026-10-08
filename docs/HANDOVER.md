@@ -68,7 +68,7 @@ compare the two side by side.
 | 4 | Fill TAS's real client / period / status, then fix `period` | [F34](./AUDIT-2026-07-26.md#f34) · [F24](./AUDIT-2026-07-26.md#f24) | **owner**, not in the repo |
 | 5 | Correct overstated status claims: "13 systems shipped", the "Also shipped" label, MYTOS "Present" vs Closure, TAS Impact written as achieved | [slop §2b](./SLOP-REVIEW-2026-09-22.md#2b-status-dan-dampak-yang-dilebihkan) | MYTOS status from owner |
 | 6 | Rewrite generic copy: hero slogan (and shrink it, so the CTAs fit above the fold), About, Contact heading, footer note; regenerate `public/og.png` with the new headline | [slop §4](./SLOP-REVIEW-2026-09-22.md) | partly owner |
-| 7 | Decide whether the published CV keeps the phone number | — | owner |
+| 7 | ~~Decide whether the published CV keeps the phone number~~ decided 2026-10-08: **keep it** (owner) | — | — |
 | 8 | Remove decorative chrome (Loader, Cursor, Aurora, Grain, Marquee, tilt, magnetic button); cut featured cards from 6 to 4 | [slop §3](./SLOP-REVIEW-2026-09-22.md) · [design §4](./DESIGN-REVIEW-2026-09-16.md#4-recommended-direction) | — |
 | 9 | Architecture diagrams per featured project, in place of screenshots | [F26](./AUDIT-2026-07-26.md#f26) | — |
 | 10 | Fix the light-theme photo badge (one line) | [F40](./AUDIT-2026-07-26.md#f40) | — |
