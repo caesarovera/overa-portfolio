@@ -38,7 +38,7 @@ found are #10–#12 below and the CTA-fold problem in #6.
 
 One placeholder is left in the shipped output: `site.url` (F02). `site.github`
 is filled. The site is still **not deployed**. It became a git repository on
-2026-10-08 (local only, not pushed).
+2026-10-08, public at `github.com/caesarovera/overa-portfolio`.
 
 ---
 
@@ -62,7 +62,7 @@ compare the two side by side.
 
 | # | Task | Ref | Needs |
 | --- | --- | --- | --- |
-| 1 | ~~`git init` + first commit~~ done 2026-10-08; push to GitHub (private or public) | [F17](./AUDIT-2026-07-26.md#f17) | owner |
+| 1 | ~~`git init`, push to GitHub~~ done 2026-10-08: public at github.com/caesarovera/overa-portfolio | [F17](./AUDIT-2026-07-26.md#f17) | — |
 | 2 | Deploy, then set `site.url` to the real domain | [F02](./AUDIT-2026-07-26.md#f02) | the domain |
 | 3 | Open the site in a real browser, desktop **and** iOS | [§5](./AUDIT-2026-07-26.md#5-not-verified) | a device |
 | 4 | Fill TAS's real client / period / status, then fix `period` | [F34](./AUDIT-2026-07-26.md#f34) · [F24](./AUDIT-2026-07-26.md#f24) | **owner**, not in the repo |
@@ -75,8 +75,8 @@ compare the two side by side.
 | 11 | Give the fixed nav a background (or hide it on scroll) so it stops covering text | [Browser test](#browser-test--2026-10-08) #2, #5 | — |
 | 12 | Make "Also shipped" an `<h3>` so the compact cards are not filed under TAS | [Browser test](#browser-test--2026-10-08) #8 | — |
 
-**#1 is half done.** The repository exists locally, so changes can now be
-diffed and reverted. Until it is pushed, the laptop is the only copy.
+**#1 is done.** The repository is on GitHub (public), so every change can be
+diffed, reverted and recovered if the laptop is lost.
 
 **#3 is the largest technical risk.** Desktop Chrome was tested on 2026-10-08
 ([Browser test](#browser-test--2026-10-08)) and passed, menu and scroll lock
