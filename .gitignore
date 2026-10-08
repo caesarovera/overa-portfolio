@@ -1,0 +1,15 @@
+/node_modules
+/.next
+/out
+.DS_Store
+*.tsbuildinfo
+next-env.d.ts
+.env*.local
+.env
+.vercel
+
+# Machine-local Claude Code permissions
+.claude/settings.local.json
+
+# Internal employer form; a content source, but not for a public repo
+FORM UPDATE KOMPETENSI & PENGALAMAN PROJECT.md
