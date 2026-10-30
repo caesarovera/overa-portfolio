@@ -120,7 +120,7 @@ Internal project notes (handover, audit, design reviews, decision log) live in
 ## Code quality
 
 ```bash
-npm run typecheck  # tsc --noEmit
+npm run typecheck  # next typegen && tsc --noEmit
 npm run lint       # eslint . --max-warnings=0
 ```
 
