@@ -161,6 +161,7 @@ src/
     sitemap.ts        # SEO sitemap
   components/
     Providers.tsx     # Lenis smooth scroll wired into the GSAP ticker
+    Loader.tsx        # count-up loading screen + wipe
     ScrollProgress.tsx# top progress bar
     Nav.tsx           # brand, links, theme toggle, mobile menu (focus trap + scroll lock)
     Reveal.tsx        # scroll-reveal wrapper (GSAP)
@@ -171,6 +172,7 @@ src/
   lib/
     content.ts        # ← ALL site content + placeholders
     fonts.ts          # next/font wiring — owns --font-display / --font-body / --font-mono
+    intro.ts          # loading-screen session flag, shared by layout, Loader and Hero
   fonts/              # self-hosted .woff2 (Clash Display, Satoshi)
   assets/
     profile.jpg       # statically imported by next/image
@@ -196,12 +198,13 @@ public/
   (`Work.tsx`). Each carries an architecture diagram from its `diagram` field in
   `content.ts`, in place of screenshots of internal software. Every diagram entry
   must trace to the same project's `stack` or `rows`.
-- **Motion is kept small** — a CSS fade-up on the hero at first paint, one
-  scroll reveal, the case stacking and the photo reveal. No loading screen,
-  custom cursor, background blobs, grain, marquee, tilt or magnetic buttons.
+- **Motion is kept small** — the loading screen (once per session) handing off
+  to the hero's letter reveal, one scroll reveal, the case stacking and the
+  photo reveal. No custom cursor, background blobs, grain, marquee, tilt or
+  magnetic buttons.
 - **Accessibility / reduced motion** — every animation checks
-  `prefers-reduced-motion: reduce`. In that mode smooth scroll is disabled and
-  content renders statically.
+  `prefers-reduced-motion: reduce`. In that mode the loader is skipped, smooth
+  scroll is disabled, and content renders statically.
   Semantic HTML, keyboard-navigable controls, visible focus, and ARIA labels
   throughout.
 - **SEO** — full metadata, Open Graph image, Twitter card, JSON-LD `Person`, and a

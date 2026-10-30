@@ -8,9 +8,14 @@ export const site = {
   /** The nav's stylised lockup, rendered as O/era with the slash in accent
    *  colour. It is NOT a decomposition of the wordmark: `sep` is a slash
    *  standing in for the letter "v", so `left + right` spells "Oera", not
-   *  "Overa". Use `name` when you need the readable name. */
+   *  "Overa". Use `wordmark` below when you need the readable name. */
   brandMark: { left: "O", sep: "/", right: "era" },
-  tagline: "Senior PHP / Laravel Developer", // hero name line, <title> suffix
+  /** The brand name spelled out, for the loading screen's animated letters.
+   *  Separate from `name` on purpose: `name` also feeds JSON-LD and the page
+   *  title with the full name, and the wordmark animation spells the short
+   *  brand. */
+  wordmark: "Overa",
+  tagline: "Senior PHP / Laravel Developer", // loading screen, hero name line, <title> suffix
   role: "Senior PHP / Laravel Developer, Backend & Full Stack", // JSON-LD Person.jobTitle
   location: "Bogor, West Java, Indonesia",
   availability: "Open to remote and onsite roles",

@@ -79,8 +79,43 @@ p { margin: 0; }
 .mono { font-family: var(--font-mono); }
 
 /* ============================================================
-   SCROLL PROGRESS
+   LOADER + PROGRESS
    ============================================================ */
+.loader {
+  position: fixed; inset: 0; z-index: 200; background: var(--bg);
+}
+/* Centred animated brand */
+.loader-brand { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; }
+.loader-mono { position: relative; width: clamp(96px, 13vw, 132px); height: clamp(96px, 13vw, 132px); display: grid; place-items: center; }
+.loader-mono svg { position: absolute; inset: 0; width: 100%; height: 100%; transform: rotate(-90deg); }
+.loader-mono span { font-family: var(--font-display); font-weight: 600; font-size: clamp(38px, 5vw, 54px); color: var(--text); letter-spacing: -0.02em; }
+.loader-mono span i { color: var(--accent); font-style: normal; }
+.lname { display: flex; gap: 0.02em; }
+.lname .line { display: block; overflow: hidden; }
+.lname .ch { display: inline-block; font-family: var(--font-display); font-weight: 600; font-size: clamp(40px, 8vw, 92px); letter-spacing: -0.02em; line-height: 1; }
+.loader-tag { font-family: var(--font-mono); font-size: clamp(12px, 1.4vw, 14px); letter-spacing: 0.16em; text-transform: uppercase; color: var(--text-3); }
+.loader .lbl { position: absolute; left: 6vw; bottom: 6vw; font-family: var(--font-mono); font-size: clamp(12px, 1.4vw, 15px); letter-spacing: 0.18em; text-transform: uppercase; color: var(--text-3); }
+.loader .count { position: absolute; right: 6vw; bottom: 5vw; font-family: var(--font-display); font-weight: 600; font-size: clamp(48px, 11vw, 140px); line-height: 0.8; letter-spacing: -0.04em; }
+.loader .count b { color: var(--accent); font-weight: 600; }
+.loader-bar { position: absolute; left: 0; bottom: 0; height: 2px; background: var(--accent); }
+.wipe { position: fixed; inset: 0; z-index: 199; background: var(--accent); transform-origin: top; }
+/* The intro already ran this session — the attribute is stamped on <html> before
+   first paint (layout.tsx). The Loader still RENDERS on the client's first pass
+   so its markup matches the server's; this is what keeps it from ever being
+   painted. Removing this rule reintroduces a full-screen flash on every reload. */
+html[data-intro="played"] .loader,
+html[data-intro="played"] .wipe { display: none; }
+
+/* Failsafe for the case <noscript> cannot reach: JS is ENABLED but the bundle
+   never arrives (failed download, blocked by an extension or corporate proxy,
+   browser too old to parse it). Nothing would tear these overlays down and the
+   fully server-rendered page below would stay covered indefinitely.
+   Normal teardown finishes in ~2.5s, so 6s only elapses when something has
+   genuinely gone wrong. Animates `visibility` only — no motion, and it touches
+   no property GSAP owns (it drives transform), so the two never fight. */
+@keyframes loader-failsafe { to { visibility: hidden; } }
+.loader, .wipe { animation: loader-failsafe 1ms linear 6s forwards; }
+
 .progress { position: fixed; top: 0; left: 0; height: 2px; width: 0; background: var(--accent); z-index: 120; }
 
 /* ============================================================
@@ -213,14 +248,9 @@ section { position: relative; z-index: 2; padding: clamp(90px, 12vw, 170px) clam
 .hero-id { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-bottom: 18px; }
 .hero-id .nm { font-family: var(--font-display); font-weight: 600; font-size: clamp(24px, 3vw, 34px); letter-spacing: -0.01em; color: var(--text); }
 .hero-id .rl { font-family: var(--font-mono); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-3); }
-/* Entrance, from the first paint (Hero.tsx sets --i). CSS rather than GSAP on
-   purpose: hiding server-rendered text from an effect would flash it once
-   before hydration. The hidden state lives only in the keyframes, so the global
-   reduced-motion `animation: none` leaves everything visible. */
-.rise { animation: rise 0.8s var(--ease) both; animation-delay: calc(var(--i, 0) * 80ms); }
-@keyframes rise { from { opacity: 0; transform: translateY(22px); } to { opacity: 1; transform: none; } }
 .hero h1 { font-size: clamp(46px, 10.5vw, 148px); font-weight: 600; }
-.hero h1 .line { display: block; }
+.hero h1 .line { display: block; overflow: hidden; }
+.hero h1 .ch { display: inline-block; }
 .hero h1 em { font-style: normal; color: var(--accent); }
 .hero .sub { max-width: 640px; margin-top: 34px; font-size: clamp(17px, 2.1vw, 21px); color: var(--text-2); }
 .hero .sub .vp { color: var(--text); }
@@ -404,6 +434,11 @@ footer.site .c { color: var(--text-3); font-size: 13px; font-family: var(--font-
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
   html { scroll-behavior: auto; }
+  /* Re-arm the loader failsafe. The blanket rule above would otherwise disable
+     the one animation whose entire job is to prevent a permanently stuck screen
+     — and a visitor on reduced motion is no less stranded by a dead bundle.
+     It animates visibility, so there is no motion being reintroduced here. */
+  .loader, .wipe { animation: loader-failsafe 1ms linear 6s forwards !important; }
 }
 
 /* ============================================================

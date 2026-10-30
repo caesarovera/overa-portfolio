@@ -1,9 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { site } from "@/lib/content";
+import { INTRO_KEY, INTRO_ATTR, INTRO_ATTR_VALUE } from "@/lib/intro";
 import { fontVariables } from "@/lib/fonts";
 import Providers from "@/components/Providers";
 import ScrollProgress from "@/components/ScrollProgress";
+import Loader from "@/components/Loader";
 import Nav from "@/components/Nav";
 
 export const metadata: Metadata = {
@@ -74,16 +76,31 @@ const personJsonLd = {
   ],
 };
 
-// Runs before first paint, so the theme cannot flash. A static string: nothing
-// in it comes from user input or request data.
+// Runs before first paint, so neither the theme nor the loading screen can flash.
+//
+// Two independent try/catch blocks on purpose: a blocked sessionStorage must not
+// cost the visitor their saved theme, and vice versa.
+//
+// Only compile-time constants are interpolated below — nothing here is derived
+// from user input, request data or storage contents, so the inline script cannot
+// be used as an injection vector.
 const noFlashScript = `(function(){var d=document.documentElement;
 try{d.setAttribute('data-theme',localStorage.getItem('theme')||'dark');}catch(e){d.setAttribute('data-theme','dark');}
+try{if(sessionStorage.getItem('${INTRO_KEY}')==='1')d.setAttribute('${INTRO_ATTR}','${INTRO_ATTR_VALUE}');}catch(e){}
 })();`;
 
-// Applied only when scripting is disabled. Everything here is !important because
-// this stylesheet's position relative to the compiled globals.css is not
-// guaranteed, and a fallback must not lose on source order.
+// Applied only when scripting is disabled.
+//
+// The loader + wipe overlays are server-rendered and torn down by React, so with
+// no JS they would cover the (fully server-rendered) page forever. Everything
+// here is !important because this stylesheet's position relative to the compiled
+// globals.css is not guaranteed, and a fallback must not lose on source order.
+//
+// This covers JS being OFF. It does NOT cover the bundle failing to download
+// while JS is on — nothing inside <noscript> renders in that case. The CSS
+// failsafe timer in globals.css (`loader-failsafe`) is what handles that.
 const noScriptCss = `
+.loader, .wipe { display: none !important; }
 /* The burger and theme toggle do nothing without JS — hide the dead controls
    and restore the plain inline links, or mobile is left with no navigation. */
 .nav-burger, .theme-toggle { display: none !important; }
@@ -116,6 +133,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <a href="#top" className="skip-link">Skip to main content</a>
         <Providers>
+          <Loader />
           <ScrollProgress />
           <Nav />
           {children}
