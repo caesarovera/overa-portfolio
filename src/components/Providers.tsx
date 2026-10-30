@@ -14,7 +14,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
  * Must be rendered INSIDE <ReactLenis> so it can access the lenis context.
  * useLenis() subscribes to the lenis instance reactively — no ref-timing race.
  * Fires ScrollTrigger.update() on every lenis scroll event, keeping scrub
- * animations (Work stacking, Aurora parallax) in sync with smooth scroll.
+ * animations (Work stacking, the photo parallax) in sync with smooth scroll.
  */
 function LenisGsapSync() {
   useLenis(() => {

@@ -15,7 +15,7 @@ import profile from "@/assets/profile.jpg";
  *  - clip-path wipe reveal when scrolled into view
  *  - grayscale → full colour + subtle zoom on hover
  *  - gentle vertical parallax on scroll (image is taller than the frame)
- *  - accent gradient + film-grain overlays, corner bracket, location badge
+ *  - accent gradient overlay, corner bracket, location badge
  */
 export default function ProfilePhoto() {
   const root = useRef<HTMLDivElement>(null);
@@ -61,7 +61,7 @@ export default function ProfilePhoto() {
   }, []);
 
   return (
-    <div className="photo" ref={root} data-cursor>
+    <div className="photo" ref={root}>
       <div className="photo-frame" ref={frame}>
         {/* `fill` because .photo-frame is deliberately taller than .photo (inset
             -8%) to give the parallax room; the frame is the positioned ancestor.
@@ -77,7 +77,6 @@ export default function ProfilePhoto() {
         />
       </div>
       <div className="photo-tint" aria-hidden="true" />
-      <div className="photo-grain" aria-hidden="true" />
       <span className="photo-corner" aria-hidden="true" />
       <span className="photo-badge">
         <span className="ok" /> {site.location}

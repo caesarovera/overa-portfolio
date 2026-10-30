@@ -161,22 +161,16 @@ src/
     sitemap.ts        # SEO sitemap
   components/
     Providers.tsx     # Lenis smooth scroll wired into the GSAP ticker
-    Loader.tsx        # count-up loading screen + wipe
-    Cursor.tsx        # custom cursor (dot + lagging ring)
-    Aurora.tsx        # parallax gradient blobs
-    Grain.tsx         # film-grain overlay
     ScrollProgress.tsx# top progress bar
     Nav.tsx           # brand, links, theme toggle, mobile menu (focus trap + scroll lock)
-    MagneticButton.tsx# magnetic CTA
     Reveal.tsx        # scroll-reveal wrapper (GSAP)
     Counter.tsx       # animated stat counter — renders the FINAL value on the server
     ProfilePhoto.tsx  # About photo: clip-path reveal, parallax, next/image
     sections/
-      Hero · About · Skills · Work · Stats · Marquee · Experience · Contact · Footer
+      Hero · About · Skills · Work · Stats · Experience · Contact · Footer
   lib/
     content.ts        # ← ALL site content + placeholders
     fonts.ts          # next/font wiring — owns --font-display / --font-body / --font-mono
-    intro.ts          # loading-screen session flag, shared by layout, Loader and Hero
   fonts/              # self-hosted .woff2 (Clash Display, Satoshi)
   assets/
     profile.jpg       # statically imported by next/image
@@ -197,12 +191,17 @@ public/
   in light mode for AA contrast. All theming flows through CSS variables in
   `globals.css`; the `[data-theme="light"]` block overrides the palette.
 - **Smooth scroll** via Lenis, sharing a single RAF loop with GSAP ScrollTrigger.
-- **Sticky stacked case studies** — `.case` cards are `position: sticky` and scale
-  down slightly as the next one stacks over them (`Work.tsx`).
+- **Sticky stacked case studies** — four featured `.case` cards are
+  `position: sticky` and scale down slightly as the next one stacks over them
+  (`Work.tsx`). Each carries an architecture diagram from its `diagram` field in
+  `content.ts`, in place of screenshots of internal software. Every diagram entry
+  must trace to the same project's `stack` or `rows`.
+- **Motion is kept small** — a CSS fade-up on the hero at first paint, one
+  scroll reveal, the case stacking and the photo reveal. No loading screen,
+  custom cursor, background blobs, grain, marquee, tilt or magnetic buttons.
 - **Accessibility / reduced motion** — every animation checks
-  `prefers-reduced-motion: reduce`. In that mode the loader is skipped, smooth
-  scroll is disabled, the custom cursor is off, the marquee stops, and content
-  renders statically.
+  `prefers-reduced-motion: reduce`. In that mode smooth scroll is disabled and
+  content renders statically.
   Semantic HTML, keyboard-navigable controls, visible focus, and ARIA labels
   throughout.
 - **SEO** — full metadata, Open Graph image, Twitter card, JSON-LD `Person`, and a

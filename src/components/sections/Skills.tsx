@@ -18,13 +18,6 @@ function Dots({ level }: { level: SkillLevel }) {
   );
 }
 
-/** Pointer-driven spotlight: feed cursor position into CSS vars for the glow. */
-function spotlight(e: React.MouseEvent<HTMLElement>) {
-  const r = e.currentTarget.getBoundingClientRect();
-  e.currentTarget.style.setProperty("--mx", `${e.clientX - r.left}px`);
-  e.currentTarget.style.setProperty("--my", `${e.clientY - r.top}px`);
-}
-
 export default function Skills() {
   const root = useRef<HTMLElement>(null);
 
@@ -61,26 +54,6 @@ export default function Skills() {
     });
   }, []);
 
-  const onTilt = (e: React.MouseEvent<HTMLElement>) => {
-    spotlight(e);
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = e.currentTarget;
-    const r = t.getBoundingClientRect();
-    const rx = ((e.clientY - r.top) / r.height - 0.5) * -6;
-    const ry = ((e.clientX - r.left) / r.width - 0.5) * 6;
-    // Track the cursor instantly (transform 0s) so the tilt feels crisp instead
-    // of rubber-banding against the CSS 0.35s transform transition. border-color
-    // keeps its transition for the hover edge.
-    t.style.transition = "border-color 0.35s, transform 0s";
-    t.style.transform = `perspective(800px) rotateX(${rx}deg) rotateY(${ry}deg) translateY(-4px)`;
-  };
-  const resetTilt = (e: React.MouseEvent<HTMLElement>) => {
-    const t = e.currentTarget;
-    // Smooth ease back to flat on leave.
-    t.style.transition = "border-color 0.35s, transform 0.5s var(--ease)";
-    t.style.transform = "";
-  };
-
   return (
     <section id="skills" ref={root} aria-labelledby="skills-title">
       <div className="wrap">
@@ -103,16 +76,9 @@ export default function Skills() {
         <div className="bento">
           {skills.map((cell) => {
             const isFeature = cell.span === "feature";
-            const tiltProps = cell.tilt
-              ? { onMouseMove: onTilt, onMouseLeave: resetTilt }
-              : { onMouseMove: spotlight };
 
             return (
-              <div
-                key={cell.title}
-                className={`cell ${cell.span}`}
-                {...tiltProps}
-              >
+              <div key={cell.title} className={`cell ${cell.span}`}>
                 <div className="ct">{cell.title}</div>
 
                 {isFeature ? (

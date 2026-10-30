@@ -1,25 +1,12 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Reveal from "@/components/Reveal";
-import { work } from "@/lib/content";
+import { work, type FeaturedCase } from "@/lib/content";
 
-/** Decorative ring/dot layouts per case visual (purely aesthetic).
- *  Indexed with `i % visuals.length` so every featured card gets a distinct
- *  layout instead of all cards past #4 falling back to visuals[0]. */
-const visuals = [
-  { rings: [300, 180], dot: { top: "30%", left: "62%" } },
-  { rings: [280], dot: { top: "60%", left: "40%" } },
-  { rings: [320, 160], dot: { top: "40%", left: "55%" } },
-  { rings: [260], dot: { top: "35%", left: "50%" } },
-  { rings: [340, 200], dot: { top: "52%", left: "68%" } },
-  { rings: [240, 140], dot: { top: "28%", left: "44%" } },
-];
-
-const featured = work.filter((c) => c.featured);
+const featured = work.filter((c): c is FeaturedCase => c.featured === true);
 const more = work.filter((c) => !c.featured);
 
 export default function Work() {
@@ -97,19 +84,6 @@ export default function Work() {
     return () => ctx.revert();
   }, []);
 
-  // 3D hover tilt on the inner card (skipped under reduced motion / coarse pointers).
-  const onTilt = (e: React.MouseEvent<HTMLElement>) => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const t = e.currentTarget;
-    const r = t.getBoundingClientRect();
-    const rx = ((e.clientY - r.top) / r.height - 0.5) * -4;
-    const ry = ((e.clientX - r.left) / r.width - 0.5) * 4;
-    t.style.transform = `perspective(1000px) rotateX(${rx}deg) rotateY(${ry}deg)`;
-  };
-  const resetTilt = (e: React.MouseEvent<HTMLElement>) => {
-    e.currentTarget.style.transform = "";
-  };
-
   return (
     <section id="work" ref={root} aria-labelledby="work-title">
       <div className="wrap">
@@ -123,60 +97,49 @@ export default function Work() {
         </div>
 
         <div className="work-stack">
-          {featured.map((c, i) => {
-            const v = visuals[i % visuals.length];
-            return (
-              <article className="case" key={c.no}>
-                <div className="case-inner" onMouseMove={onTilt} onMouseLeave={resetTilt}>
-                  <div className="case-body">
-                    <span className="no">{c.no}</span>
-                    <h3>{c.title}</h3>
-                    <div className="case-meta">
-                      <span>{c.client}</span>
-                      <span>{c.role}</span>
-                      <span>{c.period}</span>
-                    </div>
-                    <div className="stack-row">
-                      {c.stack.map((s) => (
-                        <span key={s}>{s}</span>
-                      ))}
-                    </div>
-                    <div className="paa">
-                      {c.rows.map((r) => (
-                        <div className="row" key={r.k}>
-                          <div className="k">{r.k}</div>
-                          <div className="v">{r.v}</div>
-                        </div>
-                      ))}
-                    </div>
+          {featured.map((c) => (
+            <article className="case" key={c.no}>
+              <div className="case-inner">
+                <div className="case-body">
+                  <span className="no">{c.no}</span>
+                  <h3>{c.title}</h3>
+                  <div className="case-meta">
+                    <span>{c.client}</span>
+                    <span>{c.role}</span>
+                    <span>{c.period}</span>
                   </div>
-                  <div className="case-visual" aria-hidden="true">
-                    {c.image ? (
-                      <>
-                        <Image
-                          src={c.image}
-                          alt={c.title}
-                          fill
-                          className="object-cover"
-                          style={{ filter: "blur(3px) brightness(0.55)", transform: "scale(1.05)" }}
-                          sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                        <span className="glyph" style={{ position: "relative", zIndex: 1 }}>{c.glyph}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="glyph">{c.glyph}</span>
-                        {v.rings.map((size) => (
-                          <div className="ring" key={size} style={{ width: size, height: size }} />
-                        ))}
-                        <div className="accent-dot" style={{ top: v.dot.top, left: v.dot.left }} />
-                      </>
-                    )}
+                  <div className="stack-row">
+                    {c.stack.map((s) => (
+                      <span key={s}>{s}</span>
+                    ))}
+                  </div>
+                  <div className="paa">
+                    {c.rows.map((r) => (
+                      <div className="row" key={r.k}>
+                        <div className="k">{r.k}</div>
+                        <div className="v">{r.v}</div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </article>
-            );
-          })}
+                {/* The work is internal, so a diagram stands in for screenshots.
+                    Real content (an ordered list), not decoration: the arrows
+                    between layers are CSS, so nothing extra is announced. */}
+                <figure className="case-visual arch">
+                  <figcaption className="arch-cap">Architecture</figcaption>
+                  <ol className="arch-layers">
+                    {c.diagram.map((d) => (
+                      <li className="arch-node" key={d.layer}>
+                        <span className="arch-layer">{d.layer}</span>
+                        <span className="arch-name">{d.node}</span>
+                        {d.note && <span className="arch-note">{d.note}</span>}
+                      </li>
+                    ))}
+                  </ol>
+                </figure>
+              </div>
+            </article>
+          ))}
         </div>
 
         {more.length > 0 && (

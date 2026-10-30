@@ -8,14 +8,9 @@ export const site = {
   /** The nav's stylised lockup, rendered as O/era with the slash in accent
    *  colour. It is NOT a decomposition of the wordmark: `sep` is a slash
    *  standing in for the letter "v", so `left + right` spells "Oera", not
-   *  "Overa". Use `wordmark` below when you need the readable name. */
+   *  "Overa". Use `name` when you need the readable name. */
   brandMark: { left: "O", sep: "/", right: "era" },
-  /** The brand name spelled out, for the loading screen's animated letters.
-   *  Separate from `name` on purpose: `name` also feeds JSON-LD and the page
-   *  title with the full name, and the wordmark animation spells the short
-   *  brand. */
-  wordmark: "Overa",
-  tagline: "Senior PHP / Laravel Developer", // loading screen, hero name line, <title> suffix
+  tagline: "Senior PHP / Laravel Developer", // hero name line, <title> suffix
   role: "Senior PHP / Laravel Developer, Backend & Full Stack", // JSON-LD Person.jobTitle
   location: "Bogor, West Java, Indonesia",
   availability: "Open to remote and onsite roles",
@@ -86,7 +81,6 @@ export type SkillCell = {
   span: "big" | "wide" | "mid" | "feature";
   tags?: SkillTag[];
   heading?: string;
-  tilt?: boolean;
   /** `feature` cells only: the caption under the counter. The figure itself is
    *  read from `stats[0]`, never repeated here — Skills.tsx used to hard-code
    *  its own `7`, so bumping the years in one place left the other stale. */
@@ -97,7 +91,6 @@ export const skills: SkillCell[] = [
     title: "Architecture & craft",
     span: "big",
     heading: "Production hardening as a default, not an afterthought.",
-    tilt: true,
     // Concept tags (patterns/practices) — no level dots, these aren't "tools".
     tags: [
       "Decoupled API + SPA",
@@ -114,7 +107,6 @@ export const skills: SkillCell[] = [
   {
     title: "Languages",
     span: "mid",
-    tilt: true,
     tags: [
       { name: "PHP", level: 5 },
       { name: "TypeScript", level: 3 },
@@ -124,7 +116,6 @@ export const skills: SkillCell[] = [
   {
     title: "Backend",
     span: "wide",
-    tilt: true,
     tags: [
       { name: "Laravel", level: 5 },
       { name: "CodeIgniter", level: 5 },
@@ -136,7 +127,6 @@ export const skills: SkillCell[] = [
   {
     title: "Frontend",
     span: "mid",
-    tilt: true,
     tags: [
       { name: "Vue 3", level: 3 },
       { name: "Inertia.js", level: 3 },
@@ -146,7 +136,6 @@ export const skills: SkillCell[] = [
   {
     title: "Databases",
     span: "mid",
-    tilt: true,
     tags: [
       { name: "PostgreSQL", level: 4 },
       { name: "Oracle", level: 3 },
@@ -156,7 +145,6 @@ export const skills: SkillCell[] = [
   {
     title: "Data / BI",
     span: "mid",
-    tilt: true,
     tags: [
       { name: "Power BI", level: 3 },
       { name: "DAX", level: 3 },
@@ -165,12 +153,17 @@ export const skills: SkillCell[] = [
   {
     title: "Tooling",
     span: "wide",
-    tilt: true,
     tags: ["Git & GitHub", "Docker", "CI/CD · GitHub Actions", "PHPStan", "Postman"],
   },
 ];
 
-export type CaseStudy = {
+/** One layer of a featured project's architecture diagram, read top to bottom.
+ *  Layers, not a request path: the order says what sits on what. Every entry
+ *  must trace to the same project's `stack` or `rows` — a diagram may not claim
+ *  more than the case study text does. */
+export type DiagramLayer = { layer: string; node: string; note?: string };
+
+type CaseStudyBase = {
   no: string;
   glyph: string;
   title: string;
@@ -180,14 +173,6 @@ export type CaseStudy = {
   role: string;
   stack: string[];
   rows: { k: string; v: string }[];
-  /** Optional: path to a processed screenshot in /public (e.g. "/work/tas.webp").
-   *  Ideal size: 1200×800px WebP. Blur/crop sensitive data before using.
-   *  Only used by featured cards — a missing image falls back to the glyph visual,
-   *  so projects with no screenshot are fine. */
-  image?: string;
-  /** Featured → rendered as a large sticky case card. Non-featured → shown in the
-   *  compact "More work" grid (no visual needed). Flip this flag to re-tune. */
-  featured?: boolean;
   /** Public URL, for the few projects that can actually be inspected. Most of
    *  this work is internal enterprise software behind a login, so this is rare
    *  and deliberately optional — only set it where the source record carries a
@@ -198,6 +183,14 @@ export type CaseStudy = {
    *  until Work.tsx's case-card branch renders it too. */
   url?: string;
 };
+
+/** Featured → a large sticky case card, which must carry a diagram (the work is
+ *  internal, so there are no screenshots to show). Everything else goes to the
+ *  compact "Also shipped" grid. Keep featured to the strongest four. */
+export type CaseStudy = CaseStudyBase &
+  ({ featured: true; diagram: DiagramLayer[] } | { featured?: false; diagram?: never });
+export type FeaturedCase = Extract<CaseStudy, { featured: true }>;
+
 export const work: CaseStudy[] = [
   // sorted ascending by period start date
   {
@@ -289,7 +282,6 @@ export const work: CaseStudy[] = [
   {
     no: "07 / NPKTOS",
     glyph: "NPK",
-    featured: true,
     title: "NPKTOS — Non-Container Terminal Operations",
     client: "PT Pelabuhan Tanjung Priok",
     period: "February 2021 – August 2023",
@@ -316,6 +308,11 @@ export const work: CaseStudy[] = [
       { k: "Hardened", v: "Backend business logic with MySQL for multi-user concurrent operational data management." },
       { k: "Impact", v: "Reliable container yard operations tracking and reporting across operational roles." },
     ],
+    diagram: [
+      { layer: "Users", node: "Staff · Supervisors · Management", note: "Role-based views" },
+      { layer: "App", node: "CodeIgniter 3", note: "Yard entry forms · container movement tracking · status monitoring" },
+      { layer: "Data", node: "MySQL", note: "Multi-user concurrent operational data" },
+    ],
   },
   {
     no: "09 / AIA",
@@ -325,7 +322,6 @@ export const work: CaseStudy[] = [
     client: "PT Pelabuhan Tanjung Priok",
     period: "April 2024 – November 2025",
     role: "Full-stack",
-    // image: "/work/aia.webp",
     stack: ["CodeIgniter 3", "PHP", "PostgreSQL", "QR signatures"],
     rows: [
       { k: "Problem", v: "A major Indonesian port operator needed traceable, multi-level audit workflows." },
@@ -333,11 +329,17 @@ export const work: CaseStudy[] = [
       { k: "Hardened", v: "Atomic transaction processing + race-condition prevention on the approval chain." },
       { k: "Impact", v: "Auditable, tamper-resistant approvals with one-click PDF reporting." },
     ],
+    diagram: [
+      { layer: "Roles", node: "Auditee → Auditor → Lead auditor", note: "Multi-level approval chain" },
+      { layer: "App", node: "CodeIgniter 3", note: "Role-based access control" },
+      { layer: "Integrity", node: "Atomic transactions", note: "Race-condition prevention on the approval chain" },
+      { layer: "Data", node: "PostgreSQL" },
+      { layer: "Output", node: "QR digital signatures · PDF reports" },
+    ],
   },
   {
     no: "10 / SIMONGKA",
     glyph: "SMG",
-    featured: true,
     title: "SIMONGKA",
     client: "PT Pelabuhan Tanjung Priok",
     period: "August 2024 – Present",
@@ -372,12 +374,16 @@ export const work: CaseStudy[] = [
     client: "PT Pelabuhan Tanjung Priok",
     period: "September 2025 – April 2026",
     role: "Data / BI",
-    // image: "/work/powerbi.webp",
     stack: ["Power BI", "DAX", "Oracle SQL"],
     rows: [
       { k: "Problem", v: "C-level stakeholders needed consolidated executive-level operational reporting." },
       { k: "Approach", v: "BI dashboards connected to Oracle databases — YoY analysis, financial-ratio metrics, and multi-source operational data in one unified view." },
       { k: "Impact", v: "Executive-level BI in one reporting picture for C-level decision-making." },
+    ],
+    diagram: [
+      { layer: "Sources", node: "Oracle databases", note: "Multi-source operational data · Oracle SQL" },
+      { layer: "Model", node: "Power BI · DAX", note: "YoY analysis · financial-ratio metrics" },
+      { layer: "Audience", node: "Executive dashboards", note: "One unified view for C-level stakeholders" },
     ],
   },
   {
@@ -388,13 +394,19 @@ export const work: CaseStudy[] = [
     client: "PT Pelabuhan Tanjung Priok",
     period: "In Progress",
     role: "Backend",
-    // image: "/work/tas.webp",
     stack: ["Laravel 12", "Vue 3 SPA", "PostgreSQL", "Queues"],
     rows: [
       { k: "Problem", v: "Gate congestion and unpredictable truck wait times at a container terminal." },
       { k: "Approach", v: "Time-slot booking + real-time capacity management on a decoupled Laravel 12 REST API + Vue 3 SPA." },
       { k: "Hardened", v: "Pessimistic locking, idempotency keys, reliable queues — no double-booked slots under concurrency." },
       { k: "Impact", v: "Smoother gate flow, predictable scheduling, lower yard congestion." },
+    ],
+    diagram: [
+      { layer: "Client", node: "Vue 3 SPA", note: "Time-slot booking" },
+      { layer: "API", node: "Laravel 12 REST API", note: "Real-time capacity management" },
+      { layer: "Concurrency", node: "Pessimistic locking · idempotency keys", note: "No double-booked slots" },
+      { layer: "Async", node: "Reliable queues" },
+      { layer: "Data", node: "PostgreSQL" },
     ],
   },
 ];
@@ -414,8 +426,6 @@ export const experience: TimelineItem[] = [
     desc: "CMS for Okezone.com news portal, corporate websites (MNC Energy, Spinpay, MNCTV revamp), and internal apps (Carpool Unit, Master Data Management) — PHP, Laravel, CodeIgniter 3, CakePHP 2, MySQL, Oracle DB.",
   },
 ];
-
-export const marquee: string[] = ["Laravel", "CodeIgniter 3", "Vue 3", "PostgreSQL", "Oracle", "Sanctum", "Pest", "Docker", "Power BI"];
 
 export const navLinks = [
   { href: "#work", label: "Work" },

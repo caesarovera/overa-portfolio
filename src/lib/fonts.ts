@@ -19,8 +19,8 @@ import { JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 
 /** Headings, buttons, display numerals.
- *  500 → .btn, .wc-title, .tl .role, .marquee .it
- *  600 → h1–h4, .brand, .stat .n, .big-n, loader wordmark  */
+ *  500 → .btn, .wc-title, .tl .role, .arch-name
+ *  600 → h1–h4, .brand, .stat .n, .big-n  */
 // NOTE: next/font/local derives the generated font-family name from the exported
 // binding, so these are named after the typefaces — `display`/`body` would ship
 // as font-family:"display", which is unreadable in devtools and needlessly
