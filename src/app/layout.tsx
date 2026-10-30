@@ -107,6 +107,12 @@ const noScriptCss = `
 /* The burger and theme toggle do nothing without JS — hide the dead controls
    and restore the plain inline links, or mobile is left with no navigation. */
 .nav-burger, .theme-toggle { display: none !important; }
+/* Nothing adds .scrolled without JS, so the nav keeps its background throughout. */
+nav.site {
+  background: color-mix(in srgb, var(--bg) 88%, transparent) !important;
+  backdrop-filter: blur(14px) !important;
+  border-bottom-color: var(--border) !important;
+}
 @media (max-width: 760px) {
   .nav-links { gap: 16px !important; }
   .nav-links a:not(.icon-only) { display: inline-block !important; font-size: 13px !important; }

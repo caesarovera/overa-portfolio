@@ -10,14 +10,27 @@ const MOBILE_QUERY = "(max-width: 760px)";
 
 const FOCUSABLE = 'a[href], button:not([disabled])';
 
+/** Scroll distance (px) after which the nav gets its background. */
+const SCROLLED_AT = 8;
+
 /** Top navigation: brand mark, in-page links, light/dark toggle, and — below
  *  760px, where the inline links are hidden — a modal menu. */
 export default function Nav() {
   const [theme, setTheme] = useState<"dark" | "light">("dark");
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const panel = useRef<HTMLDivElement>(null);
   const burger = useRef<HTMLButtonElement>(null);
-  const lenis = useLenis();
+  // Lenis emits for every scroll source (wheel, touch, anchors, keyboard), so
+  // this is the one place to watch. React skips the render when the boolean
+  // has not changed, so it re-renders only when crossing the threshold.
+  const lenis = useLenis(({ scroll }) => setScrolled(scroll > SCROLLED_AT));
+
+  // A reload restores the scroll position without emitting a scroll event, so
+  // read it once the instance exists, or the nav stays transparent mid-page.
+  useEffect(() => {
+    if (lenis) setScrolled(lenis.scroll > SCROLLED_AT);
+  }, [lenis]);
 
   const close = useCallback(() => setOpen(false), []);
 
@@ -103,7 +116,7 @@ export default function Nav() {
 
   return (
     <>
-      <nav className="site">
+      <nav className={scrolled ? "site scrolled" : "site"}>
         <a href="#top" className="brand" onClick={close}>
           {site.brandMark.left}
           <span>{site.brandMark.sep}</span>

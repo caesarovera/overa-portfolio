@@ -181,8 +181,11 @@ export default function Work() {
 
         {more.length > 0 && (
           <>
+            {/* A real heading, at the same level as the featured case titles, so
+                assistive tech files the compact cards under it instead of under
+                the last featured project. */}
             <div className="more-head">
-              <span className="idx">Also shipped</span>
+              <h3 className="idx">Also shipped</h3>
               <span className="line" aria-hidden="true" />
             </div>
             <div className="work-more">
