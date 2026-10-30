@@ -132,21 +132,16 @@ defects sat in the output. Both of those rules had in fact caught nothing here
 for the life of the project, because no ESLint config existed and the script
 dropped into an interactive wizard instead of running.
 
-> **`npm audit` note.** Production dependencies are **clean** as of 2026-10-07 —
-> `npm audit --omit=dev` reports `found 0 vulnerabilities`. Getting there took
-> `next@15.5.27` plus two `overrides` (`postcss >=8.5.18`, `sharp >=0.35.5`),
-> because the bundled copies lag behind their own patches (the `sharp` one closes
-> a critical RCE in the image optimiser). **Keep those overrides** until Next ships
-> the fixed versions itself, and re-verify the image optimiser if you touch the
-> `sharp` one — it is a native binary and a bad override fails at runtime, not at
-> build. The dev tree still reports 7 high advisories via the lint tooling —
-> `brace-expansion`, `braces` / `micromatch` / `fast-glob` and `js-yaml` (all
-> DoS through hostile input). None ship to production. For `brace-expansion`: That one is deliberately
-> **not** overridden: it reaches the tree as CommonJS through `minimatch@3`, the
-> patched 5.0.8 is ESM, and the exposure is a glob pattern you write yourself in
-> your own config. Forcing it risks breaking the linter to fix something
-> unreachable. Re-check when `eslint-config-next` moves off `minimatch@3`. Never run
-> `npm audit fix --omit=dev`: it prunes every dev dependency from `node_modules`.
+> **`npm audit` note.** A full `npm audit`, dev dependencies included, reports
+> `found 0 vulnerabilities` as of 2026-10-30. Getting there took `next@15.5.28`
+> plus two `overrides` (`postcss >=8.5.18`, `sharp >=0.35.5`), because the copies
+> Next bundles lag behind their own patches (the `sharp` one closes a critical
+> RCE in the image optimiser). **Keep those overrides** until Next ships the fixed
+> versions itself, and re-verify the image optimiser if you touch the `sharp`
+> one — it is a native binary and a bad override fails at runtime, not at build.
+> New advisories keep appearing, so re-run `npm audit` before every deploy. Never
+> run `npm audit fix --omit=dev`: it prunes every dev dependency from
+> `node_modules`.
 
 ---
 
